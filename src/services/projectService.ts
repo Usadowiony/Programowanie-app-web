@@ -26,5 +26,15 @@ export const projectService = {
     const projects = this.getAll()
     const filtered = projects.filter(p => p.id !== id)
     localStorage.setItem('projects', JSON.stringify(filtered))
+  },
+
+  update(id: string, newNazwa: string, newOpis: string): void {
+    const projects = this.getAll()
+    const index = projects.findIndex(p => p.id === id)
+    if (index !== -1) {
+      projects[index].nazwa = newNazwa
+      projects[index].opis = newOpis
+      localStorage.setItem('projects', JSON.stringify(projects))
+    }
   }
-}
+  }

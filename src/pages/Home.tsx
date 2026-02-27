@@ -9,7 +9,7 @@ function Home() {
         <h1 className="text-4xl font-bold mb-6">Home Page</h1>
         <button
           onClick={() => navigate('/manageme')}
-          className="bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600"
+          className="cursor-pointer bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600"
         >
           Przejdź do Manage Me
         </button>

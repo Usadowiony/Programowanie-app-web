@@ -6,9 +6,14 @@ function ManageMe() {
     const [projects, setProjects] = useState(projectService.getAll())
     const [nazwa, setNazwa] = useState('')
     const [opis, setOpis] = useState('')
+    const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
 
     useEffect(() => {
         setProjects(projectService.getAll())
+        const active = projectService.getActiveProject()
+        if (active) {
+            setActiveProjectId(active.id)
+        }
     }, [])
 
     const projectAdd = () => {
@@ -46,6 +51,11 @@ function ManageMe() {
     
     projectService.update(id, newNazwa, newOpis)
     setProjects(projectService.getAll())
+  }
+
+const projectSetActive = (id: string) => {
+  projectService.setActiveProject(id)
+  setActiveProjectId(id)
 }
 
   return (
@@ -63,6 +73,17 @@ function ManageMe() {
             <p className="mb-3">{project.opis}</p>
             <button onClick={() => projectDelete(project.id)} className="cursor-pointer px-4 py-2 bg-red-500 text-white rounded">Usuń</button>
             <button onClick={() => projectEdit(project.id)} className="ml-2 cursor-pointer px-4 py-2 bg-yellow-500 text-white rounded">Edytuj</button>
+            <button 
+              onClick={() => projectSetActive(project.id)} 
+              disabled={activeProjectId === project.id}
+              className={`ml-2 px-4 py-2 rounded ${
+                activeProjectId === project.id 
+                  ? 'bg-green-500 text-white opacity-50 cursor-not-allowed' 
+                  : 'bg-gray-500 text-white cursor-pointer hover:bg-gray-600'
+              }`}
+            >
+              {activeProjectId === project.id ? 'Aktywny' : 'Ustaw jako główny'}
+            </button>
           </div>
         ))}
       </div>

@@ -36,5 +36,20 @@ export const projectService = {
       projects[index].opis = newOpis
       localStorage.setItem('projects', JSON.stringify(projects))
     }
+  },
+
+  setActiveProject(id: string){
+      const projects = this.getAll()
+      const index = projects.findIndex(p => p.id === id)
+      if (index !== -1) {
+        const activeProject = projects[index]
+        localStorage.setItem('activeProject', JSON.stringify(activeProject))
+      }
+  },
+
+  getActiveProject(): Project | null {
+    const data = localStorage.getItem('activeProject')
+    return data ? JSON.parse(data) : null
   }
-  }
+  
+}

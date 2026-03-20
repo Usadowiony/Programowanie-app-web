@@ -26,6 +26,12 @@ function Home() {
           >
             Przejdź do Historyjek
           </button>
+          <button
+            onClick={() => navigate('/tasks')}
+            className="w-full cursor-pointer bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600"
+          >
+            Przejdź do Zadań
+          </button>
         </div>
       </div>
     </div>

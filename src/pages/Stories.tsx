@@ -2,12 +2,21 @@ import { useState, useEffect } from 'react'
 import { storyService, Story } from '../services/storyService'
 import { projectService } from '../services/projectService'
 import { getCurrentUser } from '../services/userService'
+import { taskService } from '../services/taskService'
 
 function Stories() {
   const [stories, setStories] = useState<Story[]>([])
   const [nazwa, setNazwa] = useState('')
   const [opis, setOpis] = useState('')
   const [priorytet, setPriorytet] = useState<'niski' | 'sredni' | 'wysoki'>('niski')
+  
+  // Nowe state dla zadań
+  const [newTaskName, setNewTaskName] = useState('')
+  const [newTaskDesc, setNewTaskDesc] = useState('')
+  const [newTaskPriority, setNewTaskPriority] = useState<'niski' | 'sredni' | 'wysoki'>('niski')
+  const [newTaskTime, setNewTaskTime] = useState('')
+  const [expandedStoryId, setExpandedStoryId] = useState<string | null>(null)
+  
   const activeProject = projectService.getActiveProject()
 
   const user = getCurrentUser()
@@ -71,6 +80,24 @@ function Stories() {
 
   const handleChangeStatus = (id: string, stan: 'todo' | 'doing' | 'done') => {
     storyService.changeStatus(id, stan)
+    loadStories()
+  }
+
+  const handleAddTask = (storyId: string) => {
+    if (newTaskName.trim() === '') {
+      alert('Nazwa zadania nie może być pusta!')
+      return
+    }
+    if (newTaskDesc.trim() === '') {
+      alert('Opis zadania nie może być pusty!')
+      return
+    }
+    taskService.create(newTaskName, newTaskDesc, newTaskPriority, storyId, newTaskTime)
+    setNewTaskName('')
+    setNewTaskDesc('')
+    setNewTaskPriority('niski')
+    setNewTaskTime('')
+    setExpandedStoryId(null)
     loadStories()
   }
 
@@ -169,7 +196,55 @@ function Stories() {
                     >
                       Usuń
                     </button>
+                    <button
+                      onClick={() => setExpandedStoryId(expandedStoryId === story.id ? null : story.id)}
+                      className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600 cursor-pointer"
+                    >
+                      {expandedStoryId === story.id ? '✕ Anuluj' : '+ Dodaj zadanie'}
+                    </button>
                   </div>
+                  {expandedStoryId === story.id && (
+                    <div className="mt-4 p-4 border-t border-gray-200">
+                      <input
+                        type="text"
+                        value={newTaskName}
+                        onChange={e => setNewTaskName(e.target.value)}
+                        placeholder="Nazwa zadania"
+                        className="w-full px-3 py-2 border rounded mb-2"
+                      />
+                      <textarea
+                        value={newTaskDesc}
+                        onChange={e => setNewTaskDesc(e.target.value)}
+                        placeholder="Opis zadania"
+                        className="w-full px-3 py-2 border rounded mb-2"
+                        rows={2}
+                      />
+                      <div className="flex gap-2 mb-2">
+                        <select
+                          value={newTaskPriority}
+                          onChange={e => setNewTaskPriority(e.target.value as 'niski' | 'sredni' | 'wysoki')}
+                          className="flex-1 px-3 py-2 border rounded"
+                        >
+                          <option value="niski">Niski</option>
+                          <option value="sredni">Średni</option>
+                          <option value="wysoki">Wysoki</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={newTaskTime}
+                          onChange={e => setNewTaskTime(e.target.value)}
+                          placeholder="Czas (np. 8h)"
+                          className="flex-1 px-3 py-2 border rounded"
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleAddTask(story.id)}
+                        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 cursor-pointer w-full"
+                      >
+                        Dodaj zadanie
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -210,7 +285,55 @@ function Stories() {
                     >
                       Usuń
                     </button>
+                    <button
+                      onClick={() => setExpandedStoryId(expandedStoryId === story.id ? null : story.id)}
+                      className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600 cursor-pointer"
+                    >
+                      {expandedStoryId === story.id ? '✕ Anuluj' : '+ Dodaj zadanie'}
+                    </button>
                   </div>
+                  {expandedStoryId === story.id && (
+                    <div className="mt-4 p-4 border-t border-gray-200">
+                      <input
+                        type="text"
+                        value={newTaskName}
+                        onChange={e => setNewTaskName(e.target.value)}
+                        placeholder="Nazwa zadania"
+                        className="w-full px-3 py-2 border rounded mb-2"
+                      />
+                      <textarea
+                        value={newTaskDesc}
+                        onChange={e => setNewTaskDesc(e.target.value)}
+                        placeholder="Opis zadania"
+                        className="w-full px-3 py-2 border rounded mb-2"
+                        rows={2}
+                      />
+                      <div className="flex gap-2 mb-2">
+                        <select
+                          value={newTaskPriority}
+                          onChange={e => setNewTaskPriority(e.target.value as 'niski' | 'sredni' | 'wysoki')}
+                          className="flex-1 px-3 py-2 border rounded"
+                        >
+                          <option value="niski">Niski</option>
+                          <option value="sredni">Średni</option>
+                          <option value="wysoki">Wysoki</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={newTaskTime}
+                          onChange={e => setNewTaskTime(e.target.value)}
+                          placeholder="Czas (np. 8h)"
+                          className="flex-1 px-3 py-2 border rounded"
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleAddTask(story.id)}
+                        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 cursor-pointer w-full"
+                      >
+                        Dodaj zadanie
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -245,7 +368,55 @@ function Stories() {
                     >
                       Usuń
                     </button>
+                    <button
+                      onClick={() => setExpandedStoryId(expandedStoryId === story.id ? null : story.id)}
+                      className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600 cursor-pointer"
+                    >
+                      {expandedStoryId === story.id ? '✕ Anuluj' : '+ Dodaj zadanie'}
+                    </button>
                   </div>
+                  {expandedStoryId === story.id && (
+                    <div className="mt-4 p-4 border-t border-gray-200">
+                      <input
+                        type="text"
+                        value={newTaskName}
+                        onChange={e => setNewTaskName(e.target.value)}
+                        placeholder="Nazwa zadania"
+                        className="w-full px-3 py-2 border rounded mb-2"
+                      />
+                      <textarea
+                        value={newTaskDesc}
+                        onChange={e => setNewTaskDesc(e.target.value)}
+                        placeholder="Opis zadania"
+                        className="w-full px-3 py-2 border rounded mb-2"
+                        rows={2}
+                      />
+                      <div className="flex gap-2 mb-2">
+                        <select
+                          value={newTaskPriority}
+                          onChange={e => setNewTaskPriority(e.target.value as 'niski' | 'sredni' | 'wysoki')}
+                          className="flex-1 px-3 py-2 border rounded"
+                        >
+                          <option value="niski">Niski</option>
+                          <option value="sredni">Średni</option>
+                          <option value="wysoki">Wysoki</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={newTaskTime}
+                          onChange={e => setNewTaskTime(e.target.value)}
+                          placeholder="Czas (np. 8h)"
+                          className="flex-1 px-3 py-2 border rounded"
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleAddTask(story.id)}
+                        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 cursor-pointer w-full"
+                      >
+                        Dodaj zadanie
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

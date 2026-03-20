@@ -10,7 +10,6 @@ function Stories() {
   const [opis, setOpis] = useState('')
   const [priorytet, setPriorytet] = useState<'niski' | 'sredni' | 'wysoki'>('niski')
   
-  // Nowe state dla zadań
   const [newTaskName, setNewTaskName] = useState('')
   const [newTaskDesc, setNewTaskDesc] = useState('')
   const [newTaskPriority, setNewTaskPriority] = useState<'niski' | 'sredni' | 'wysoki'>('niski')

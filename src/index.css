@@ -1,1 +1,179 @@
 @import "tailwindcss";
+
+:root {
+	--app-bg: #f6f8fb;
+	--nav-bg: rgba(255, 255, 255, 0.92);
+	--nav-border: #d6dde8;
+	--nav-text: #1f2937;
+	--nav-link-hover: #e6ecf5;
+	--nav-link-active-bg: #2563eb;
+	--nav-link-active-text: #ffffff;
+}
+
+:root.theme-dark {
+	--app-bg: #101722;
+	--nav-bg: rgba(16, 23, 34, 0.92);
+	--nav-border: #293547;
+	--nav-text: #e5ebf4;
+	--nav-link-hover: #1d2839;
+	--nav-link-active-bg: #3b82f6;
+	--nav-link-active-text: #ffffff;
+}
+
+body {
+	margin: 0;
+	background: var(--app-bg);
+	transition: background-color 0.2s ease;
+}
+
+.app-shell {
+	color: var(--nav-text);
+}
+
+.app-nav {
+	position: sticky;
+	top: 0;
+	z-index: 50;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	border-bottom: 1px solid var(--nav-border);
+	background: var(--nav-bg);
+	backdrop-filter: blur(6px);
+}
+
+.app-nav-links {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.app-nav-link {
+	text-decoration: none;
+	color: var(--nav-text);
+	font-weight: 600;
+	font-size: 0.9rem;
+	border-radius: 9999px;
+	padding: 0.45rem 0.9rem;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.app-nav-link:hover {
+	background: var(--nav-link-hover);
+}
+
+.app-nav-link.is-active {
+	background: var(--nav-link-active-bg);
+	color: var(--nav-link-active-text);
+}
+
+.theme-toggle {
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: 9999px;
+	border: 1px solid var(--nav-border);
+	background: transparent;
+	color: var(--nav-text);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+	background: var(--nav-link-hover);
+	transform: rotate(-8deg);
+}
+
+.app-main {
+	min-height: calc(100vh - 64px);
+}
+
+.theme-dark {
+	color-scheme: dark;
+}
+
+.theme-dark .bg-gray-100 {
+	background-color: #0b1220 !important;
+}
+
+.theme-dark .bg-white {
+	background-color: #162033 !important;
+}
+
+.theme-dark .bg-gray-50 {
+	background-color: #111b2c !important;
+}
+
+.theme-dark .bg-blue-50 {
+	background-color: #10243d !important;
+}
+
+.theme-dark .bg-green-50 {
+	background-color: #10291f !important;
+}
+
+.theme-dark .bg-red-50 {
+	background-color: #341621 !important;
+}
+
+.theme-dark .bg-yellow-50 {
+	background-color: #2f260f !important;
+}
+
+.theme-dark .bg-blue-50,
+.theme-dark .bg-green-50,
+.theme-dark .bg-red-50,
+.theme-dark .bg-yellow-50 {
+	color: #e5ebf4 !important;
+}
+
+.theme-dark .text-gray-800 {
+	color: #e5ebf4 !important;
+}
+
+.theme-dark .text-gray-700 {
+	color: #c9d4e5 !important;
+}
+
+.theme-dark .text-gray-600,
+.theme-dark .text-gray-500 {
+	color: #9fb0c8 !important;
+}
+
+.theme-dark .border,
+.theme-dark .border-gray-200 {
+	border-color: #334155 !important;
+}
+
+.theme-dark input,
+.theme-dark select,
+.theme-dark textarea {
+	background-color: #0f172a;
+	color: #e5ebf4;
+	border-color: #334155;
+}
+
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+	color: #8ca0bb;
+}
+
+.theme-dark option {
+	background-color: #0f172a;
+	color: #e5ebf4;
+}
+
+@media (max-width: 640px) {
+	.app-nav {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.theme-toggle {
+		align-self: flex-end;
+	}
+}

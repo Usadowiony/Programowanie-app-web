@@ -92,8 +92,132 @@ body {
 	min-height: calc(100vh - 64px);
 }
 
+.app-nav-right {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.app-user-box {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4rem;
+	font-size: 0.85rem;
+}
+
+.app-user-label {
+	color: #64748b;
+}
+
+.app-user-name {
+	font-weight: 700;
+	color: var(--nav-text);
+}
+
+.notification-counter-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	text-decoration: none;
+	padding: 0.35rem 0.6rem;
+	border-radius: 9999px;
+	border: 1px solid var(--nav-border);
+	color: var(--nav-text);
+	background: transparent;
+	transition: background-color 0.2s ease;
+}
+
+.notification-counter-link:hover {
+	background: var(--nav-link-hover);
+}
+
+.notification-counter-label {
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.notification-counter-badge {
+	min-width: 1.35rem;
+	height: 1.35rem;
+	padding: 0 0.35rem;
+	border-radius: 9999px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.75rem;
+	font-weight: 700;
+	background: #ef4444;
+	color: #ffffff;
+}
+
+.notification-dialog-overlay {
+	position: fixed;
+	bottom: 1rem;
+	right: 1rem;
+	z-index: 80;
+}
+
+.notification-dialog {
+	width: min(92vw, 360px);
+	background: #ffffff;
+	color: #1f2937;
+	border: 1px solid #d6dde8;
+	border-radius: 0.85rem;
+	padding: 0.85rem;
+	box-shadow: 0 15px 45px rgba(0, 0, 0, 0.18);
+}
+
+.notification-dialog-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 0.85rem;
+}
+
+.notification-dialog-close,
+.notification-dialog-button,
+.notification-dialog-link {
+	border: none;
+	background: #e2e8f0;
+	color: #1f2937;
+	border-radius: 0.5rem;
+	padding: 0.35rem 0.55rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.notification-dialog-link {
+	background: #2563eb;
+	color: #ffffff;
+}
+
+.notification-dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.8rem;
+}
+
 .theme-dark {
 	color-scheme: dark;
+}
+
+.theme-dark .app-user-label {
+	color: #94a3b8;
+}
+
+.theme-dark .notification-dialog {
+	background: #162033;
+	color: #e5ebf4;
+	border-color: #334155;
+}
+
+.theme-dark .notification-dialog-close,
+.theme-dark .notification-dialog-button {
+	background: #334155;
+	color: #e5ebf4;
 }
 
 .theme-dark .bg-gray-100 {
@@ -171,6 +295,11 @@ body {
 	.app-nav {
 		align-items: flex-start;
 		flex-direction: column;
+	}
+
+	.app-nav-right {
+		width: 100%;
+		justify-content: space-between;
 	}
 
 	.theme-toggle {

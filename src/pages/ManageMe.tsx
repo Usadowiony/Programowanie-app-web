@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useEffect } from 'react'
 import { projectService } from '../services/projectService'
+import { getAllUsers } from '../services/userService'
+import { notificationService } from '../services/notificationService'
 
 function ManageMe() {
     const [projects, setProjects] = useState(projectService.getAll())
@@ -25,7 +27,19 @@ function ManageMe() {
             alert('Opis nie może być pusty!')
             return
         }
-        projectService.create(nazwa, opis)
+        const project = projectService.create(nazwa, opis)
+
+        const adminIds = getAllUsers()
+          .filter((user) => user.role === 'admin')
+          .map((user) => user.id)
+
+        notificationService.createForRecipients({
+          title: 'Utworzono nowy projekt',
+          message: `Powstal projekt: ${project.nazwa}`,
+          priority: 'high',
+          recipientIds: adminIds,
+        })
+
         setProjects(projectService.getAll())
         setNazwa('')
         setOpis('')

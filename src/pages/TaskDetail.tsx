@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { taskService, Task } from '../services/taskService'
 import { storyService, Story } from '../services/storyService'
 import { getAllUsers, getUserById } from '../services/userService'
+import { notificationService } from '../services/notificationService'
 
 function TaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
@@ -42,6 +43,24 @@ function TaskDetail() {
     }
     
     taskService.assignUser(taskId, selectedUserId)
+
+    if (task) {
+      notificationService.createForRecipients({
+        title: 'Przypisanie do zadania',
+        message: `Zostales przypisany do zadania: ${task.nazwa}`,
+        priority: 'high',
+        recipientIds: [selectedUserId],
+      })
+
+      if (story) {
+        notificationService.createForRecipients({
+          title: 'Zmiana statusu zadania',
+          message: `Zadanie ${task.nazwa} ma status doing`,
+          priority: 'low',
+          recipientIds: [story.wlascicielId],
+        })
+      }
+    }
     
     const updatedTask = taskService.getAll().find(t => t.id === taskId)
     if (updatedTask) {
@@ -55,6 +74,15 @@ function TaskDetail() {
     if (!taskId) return
     
     taskService.completeTask(taskId)
+
+    if (task && story) {
+      notificationService.createForRecipients({
+        title: 'Zmiana statusu zadania',
+        message: `Zadanie ${task.nazwa} ma status done`,
+        priority: 'medium',
+        recipientIds: [story.wlascicielId],
+      })
+    }
     
     const updatedTask = taskService.getAll().find(t => t.id === taskId)
     if (updatedTask) {
@@ -62,6 +90,31 @@ function TaskDetail() {
     }
     
     alert('Zadanie zamknięte!')
+  }
+
+  const handleDeleteTask = () => {
+    if (!taskId || !task) {
+      return
+    }
+
+    const shouldDelete = window.confirm('Czy na pewno usunac to zadanie?')
+    if (!shouldDelete) {
+      return
+    }
+
+    taskService.delete(taskId)
+
+    if (story) {
+      notificationService.createForRecipients({
+        title: 'Usuniecie zadania z historyjki',
+        message: `Usunieto zadanie: ${task.nazwa}`,
+        priority: 'medium',
+        recipientIds: [story.wlascicielId],
+      })
+    }
+
+    alert('Zadanie usuniete!')
+    navigate('/tasks')
   }
 
   if (!task) {
@@ -194,6 +247,14 @@ function TaskDetail() {
           {task.stan === 'done' && (
             <p className="text-green-600 font-bold text-lg">✅ Zadanie jest zamknięte</p>
           )}
+
+          <button
+            type="button"
+            onClick={handleDeleteTask}
+            className="w-full mt-4 px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer font-semibold"
+          >
+            Usun zadanie
+          </button>
         </div>
       </div>
     </div>

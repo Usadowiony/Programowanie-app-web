@@ -3,6 +3,7 @@ import { storyService, Story } from '../services/storyService'
 import { projectService } from '../services/projectService'
 import { getCurrentUser } from '../services/userService'
 import { taskService } from '../services/taskService'
+import { notificationService } from '../services/notificationService'
 
 function Stories() {
   const [stories, setStories] = useState<Story[]>([])
@@ -45,7 +46,15 @@ function Stories() {
       alert('Opis nie może być pusty!')
       return
     }
-    storyService.create(nazwa, opis, priorytet, activeProject.id, user.id)
+    const newStory = storyService.create(nazwa, opis, priorytet, activeProject.id, user.id)
+
+    notificationService.createForRecipients({
+      title: 'Przypisanie do historyjki',
+      message: `Jestes wlascicielem historyjki: ${newStory.nazwa}`,
+      priority: 'high',
+      recipientIds: [newStory.wlascicielId],
+    })
+
     setNazwa('')
     setOpis('')
     setPriorytet('niski')
@@ -91,7 +100,18 @@ function Stories() {
       alert('Opis zadania nie może być pusty!')
       return
     }
-    taskService.create(newTaskName, newTaskDesc, newTaskPriority, storyId, newTaskTime)
+    const newTask = taskService.create(newTaskName, newTaskDesc, newTaskPriority, storyId, newTaskTime)
+
+    const story = storyService.getAll().find((item) => item.id === storyId)
+    if (story) {
+      notificationService.createForRecipients({
+        title: 'Nowe zadanie w historyjce',
+        message: `Dodano zadanie: ${newTask.nazwa}`,
+        priority: 'medium',
+        recipientIds: [story.wlascicielId],
+      })
+    }
+
     setNewTaskName('')
     setNewTaskDesc('')
     setNewTaskPriority('niski')

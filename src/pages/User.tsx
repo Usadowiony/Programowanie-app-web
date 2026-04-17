@@ -4,6 +4,14 @@ function User() {
 
     const user = getCurrentUser();
 
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <h1 className="text-2xl">Brak danych użytkownika</h1>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">

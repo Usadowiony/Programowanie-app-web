@@ -133,6 +133,14 @@ function Stories() {
   const doingStories = stories.filter(s => s.stan === 'doing')
   const doneStories = stories.filter(s => s.stan === 'done')
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <h1 className="text-2xl text-gray-700">Brak zalogowanego użytkownika</h1>
+      </div>
+    )
+  }
+
   if (!activeProject) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">

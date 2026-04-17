@@ -11,7 +11,7 @@ interface Task {
   dataDodania: string
   dataStart: string | null
   dataKonca: string | null
-  uzytkownikId: number | null
+  uzytkownikId: string | null
 }
 
 export const taskService = {
@@ -73,7 +73,7 @@ export const taskService = {
     localStorage.setItem('tasks', JSON.stringify(filtered))
   },
 
-  assignUser(taskId: string, userId: number): void {
+  assignUser(taskId: string, userId: string): void {
     const tasks = this.getAll()
     const taskIndex = tasks.findIndex(t => t.id === taskId)
     

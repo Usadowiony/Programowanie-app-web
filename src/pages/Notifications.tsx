@@ -14,7 +14,12 @@ function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([])
 
   const reloadNotifications = () => {
-    setNotifications(notificationService.getByRecipient(currentUser.id))
+    if (!currentUser) {
+      setNotifications([])
+      return
+    }
+
+    setNotifications(notificationService.getByRecipient(currentUser.id, currentUser.email))
   }
 
   useEffect(() => {
@@ -28,6 +33,14 @@ function Notifications() {
   }, [])
 
   const unreadCount = notifications.filter((notification) => !notification.isRead).length
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <h1 className="text-2xl text-gray-700">Brak zalogowanego użytkownika</h1>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-8 pb-16">

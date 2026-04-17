@@ -11,7 +11,7 @@ function TaskDetail() {
 
   const [task, setTask] = useState<Task | null>(null)
   const [story, setStory] = useState<Story | null>(null)
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   const availableUsers = getAllUsers().filter(u => u.role === 'developer' || u.role === 'devops')
 
@@ -215,7 +215,7 @@ function TaskDetail() {
               <div className="flex gap-2">
                 <select
                   value={selectedUserId || ''}
-                  onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                  onChange={(e) => setSelectedUserId(e.target.value || null)}
                   className="flex-1 px-4 py-2 border rounded"
                 >
                   <option value="">-- Wybierz osobę --</option>

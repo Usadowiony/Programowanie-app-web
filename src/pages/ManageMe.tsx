@@ -33,12 +33,14 @@ function ManageMe() {
           .filter((user) => user.role === 'admin')
           .map((user) => user.id)
 
-        notificationService.createForRecipients({
-          title: 'Utworzono nowy projekt',
-          message: `Powstal projekt: ${project.nazwa}`,
-          priority: 'high',
-          recipientIds: adminIds,
-        })
+        if (adminIds.length > 0) {
+          notificationService.createForRecipients({
+            title: 'Utworzono nowy projekt',
+            message: `Powstal projekt: ${project.nazwa}`,
+            priority: 'high',
+            recipientIds: adminIds,
+          })
+        }
 
         setProjects(projectService.getAll())
         setNazwa('')

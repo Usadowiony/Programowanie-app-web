@@ -1,7 +1,7 @@
 export type NotificationPriority = 'low' | 'medium' | 'high'
 
 export type ISOString = string
-export type UserID = number
+export type UserID = string
 
 export type Notification = {
   id: string
@@ -11,13 +11,15 @@ export type Notification = {
   priority: NotificationPriority
   isRead: boolean
   recipientId: UserID
+  recipientEmail?: string
 }
 
 type NotificationInput = {
   title: string
   message: string
   priority: NotificationPriority
-  recipientIds: UserID[]
+  recipientIds?: UserID[]
+  recipientEmails?: string[]
 }
 
 type CreatedListener = (notification: Notification) => void
@@ -49,14 +51,34 @@ const uniqueRecipientIds = (ids: UserID[]): UserID[] => {
   return [...new Set(ids)]
 }
 
+const uniqueRecipientEmails = (emails: string[]): string[] => {
+  const normalized = emails
+    .map((email) => email.toLowerCase().trim())
+    .filter((email) => email !== '')
+
+  return [...new Set(normalized)]
+}
+
 export const notificationService = {
   getAll(): Notification[] {
     return getSavedNotifications()
   },
 
-  getByRecipient(recipientId: UserID): Notification[] {
+  getByRecipient(recipientId: UserID, recipientEmail?: string): Notification[] {
+    const normalizedEmail = recipientEmail?.toLowerCase().trim()
+
     return this.getAll()
-      .filter((notification) => notification.recipientId === recipientId)
+      .filter((notification) => {
+        if (notification.recipientId === recipientId) {
+          return true
+        }
+
+        if (!normalizedEmail || !notification.recipientEmail) {
+          return false
+        }
+
+        return notification.recipientEmail.toLowerCase() === normalizedEmail
+      })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   },
 
@@ -65,15 +87,16 @@ export const notificationService = {
     return notification ?? null
   },
 
-  getUnreadCount(recipientId: UserID): number {
-    return this.getByRecipient(recipientId).filter((notification) => !notification.isRead).length
+  getUnreadCount(recipientId: UserID, recipientEmail?: string): number {
+    return this.getByRecipient(recipientId, recipientEmail).filter((notification) => !notification.isRead).length
   },
 
   createForRecipients(input: NotificationInput): Notification[] {
     const notifications = this.getAll()
-    const recipientIds = uniqueRecipientIds(input.recipientIds)
+    const recipientIds = uniqueRecipientIds(input.recipientIds || [])
+    const recipientEmails = uniqueRecipientEmails(input.recipientEmails || [])
 
-    const created = recipientIds.map((recipientId) => ({
+    const byIds = recipientIds.map((recipientId) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: input.title,
       message: input.message,
@@ -82,6 +105,23 @@ export const notificationService = {
       isRead: false,
       recipientId,
     }))
+
+    const byEmails = recipientEmails.map((recipientEmail) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: input.title,
+      message: input.message,
+      date: new Date().toISOString(),
+      priority: input.priority,
+      isRead: false,
+      recipientId: '',
+      recipientEmail,
+    }))
+
+    const created = [...byIds, ...byEmails]
+
+    if (created.length === 0) {
+      return []
+    }
 
     saveNotifications([...notifications, ...created])
     created.forEach((notification) => emitCreated(notification))

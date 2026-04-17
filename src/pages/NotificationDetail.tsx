@@ -9,6 +9,11 @@ function NotificationDetail() {
   const [notification, setNotification] = useState<Notification | null>(null)
 
   useEffect(() => {
+    if (!currentUser) {
+      setNotification(null)
+      return
+    }
+
     if (!notificationId) {
       setNotification(null)
       return
@@ -29,7 +34,7 @@ function NotificationDetail() {
     }
 
     setNotification(found)
-  }, [notificationId])
+  }, [notificationId, currentUser?.id])
 
   if (!notification) {
     return (

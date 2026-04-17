@@ -6,7 +6,7 @@ interface Story {
   projektId: string
   dataUtworzenia: string
   stan: 'todo' | 'doing' | 'done'
-  wlascicielId: number
+  wlascicielId: string
 }
 
 export const storyService = {
@@ -20,7 +20,7 @@ export const storyService = {
     return all.filter(s => s.projektId === projektId)
   },
 
-  create(nazwa: string, opis: string, priorytet: 'niski' | 'sredni' | 'wysoki', projektId: string, wlascicielId: number): Story {
+  create(nazwa: string, opis: string, priorytet: 'niski' | 'sredni' | 'wysoki', projektId: string, wlascicielId: string): Story {
     const stories = this.getAll()
     const newStory: Story = {
       id: Date.now().toString(),

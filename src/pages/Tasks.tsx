@@ -1,30 +1,43 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { taskService, Task } from '../services/taskService'
-import { storyService } from '../services/storyService'
-import { projectService } from '../services/projectService'
+import { storyService, Story } from '../services/storyService'
+import { projectService, Project } from '../services/projectService'
 import { getUserById } from '../services/userService'
 
 function Tasks() {
   const navigate = useNavigate()
   const [tasks, setTasks] = useState<Task[]>([])
-  const activeProject = projectService.getActiveProject()
+  const [stories, setStories] = useState<Story[]>([])
+  const [activeProject, setActiveProject] = useState<Project | null>(null)
 
   useEffect(() => {
-    loadTasks()
+    void loadTasks()
   }, [])
 
-  const loadTasks = () => {
-    if (activeProject) {
-      const allTasks = taskService.getAll()
-      const filteredTasks = allTasks.filter(task => {
-        const story = storyService.getAll().find(s => s.id === task.storyId)
-        return story && story.projektId === activeProject.id
-      })
-      setTasks(filteredTasks)
-    } else {
+  const loadTasks = async () => {
+    const currentProject = await projectService.getActiveProject()
+    setActiveProject(currentProject)
+
+    if (!currentProject) {
       setTasks([])
+      setStories([])
+      return
     }
+
+    const [allTasks, allStories] = await Promise.all([
+      taskService.getAll(),
+      storyService.getAll(),
+    ])
+
+    setStories(allStories)
+
+    const filteredTasks = allTasks.filter((task) => {
+      const story = allStories.find((item) => item.id === task.storyId)
+      return story && story.projektId === currentProject.id
+    })
+
+    setTasks(filteredTasks)
   }
 
   const todoTasks = tasks.filter(t => t.stan === 'todo')
@@ -33,7 +46,7 @@ function Tasks() {
 
   const TaskCard = ({ task }: { task: Task }) => {
     const assignedUser = task.uzytkownikId ? getUserById(task.uzytkownikId) : null
-    const story = storyService.getAll().find(s => s.id === task.storyId)
+    const story = stories.find((item) => item.id === task.storyId)
     
     const getPriorityColor = (priorytet: string) => {
       switch (priorytet) {

@@ -1,24 +1,33 @@
 import { useState } from 'react'
 import { useEffect } from 'react'
-import { projectService } from '../services/projectService'
+import { projectService, Project } from '../services/projectService'
 import { getAllUsers } from '../services/userService'
 import { notificationService } from '../services/notificationService'
 
 function ManageMe() {
-    const [projects, setProjects] = useState(projectService.getAll())
+  const [projects, setProjects] = useState<Project[]>([])
     const [nazwa, setNazwa] = useState('')
     const [opis, setOpis] = useState('')
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
 
+  const loadProjects = async () => {
+    const allProjects = await projectService.getAll()
+    setProjects(allProjects)
+
+    const active = await projectService.getActiveProject()
+    if (active) {
+      setActiveProjectId(active.id)
+      return
+    }
+
+    setActiveProjectId(null)
+  }
+
     useEffect(() => {
-        setProjects(projectService.getAll())
-        const active = projectService.getActiveProject()
-        if (active) {
-            setActiveProjectId(active.id)
-        }
+    void loadProjects()
     }, [])
 
-    const projectAdd = () => {
+  const projectAdd = async () => {
         if (nazwa.trim() === '') {
             alert('Nazwa nie może być pusta!')
             return
@@ -27,14 +36,14 @@ function ManageMe() {
             alert('Opis nie może być pusty!')
             return
         }
-        const project = projectService.create(nazwa, opis)
+        const project = await projectService.create(nazwa, opis)
 
         const adminIds = getAllUsers()
           .filter((user) => user.role === 'admin')
           .map((user) => user.id)
 
         if (adminIds.length > 0) {
-          notificationService.createForRecipients({
+          await notificationService.createForRecipients({
             title: 'Utworzono nowy projekt',
             message: `Powstal projekt: ${project.nazwa}`,
             priority: 'high',
@@ -42,17 +51,17 @@ function ManageMe() {
           })
         }
 
-        setProjects(projectService.getAll())
+        await loadProjects()
         setNazwa('')
         setOpis('')
     }
 
-    const projectDelete = (id: string) => {
-        projectService.delete(id)
-        setProjects(projectService.getAll())
+    const projectDelete = async (id: string) => {
+        await projectService.delete(id)
+        await loadProjects()
     }
 
-    const projectEdit = (id: string) => {
+    const projectEdit = async (id: string) => {
     const newNazwa = prompt('Podaj nową nazwę projektu:')
     if (!newNazwa || newNazwa.trim() === '') {
         alert('Nazwa nie może być pusta!')
@@ -65,12 +74,12 @@ function ManageMe() {
         return
     }
     
-    projectService.update(id, newNazwa, newOpis)
-    setProjects(projectService.getAll())
+    await projectService.update(id, newNazwa, newOpis)
+    await loadProjects()
   }
 
-const projectSetActive = (id: string) => {
-  projectService.setActiveProject(id)
+const projectSetActive = async (id: string) => {
+  await projectService.setActiveProject(id)
   setActiveProjectId(id)
 }
 

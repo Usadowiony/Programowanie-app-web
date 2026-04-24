@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { storyService, Story } from '../services/storyService'
-import { projectService } from '../services/projectService'
+import { projectService, Project } from '../services/projectService'
 import { getCurrentUser } from '../services/userService'
 import { taskService } from '../services/taskService'
 import { notificationService } from '../services/notificationService'
@@ -16,39 +16,51 @@ function Stories() {
   const [newTaskPriority, setNewTaskPriority] = useState<'niski' | 'sredni' | 'wysoki'>('niski')
   const [newTaskTime, setNewTaskTime] = useState('')
   const [expandedStoryId, setExpandedStoryId] = useState<string | null>(null)
+  const [activeProject, setActiveProject] = useState<Project | null>(null)
   
-  const activeProject = projectService.getActiveProject()
-
   const user = getCurrentUser()
 
   useEffect(() => {
-    loadStories()
+    void loadStories()
   }, [])
 
-  const loadStories = () => {
-    if (activeProject) {
-      setStories(storyService.getByProject(activeProject.id))
-    } else {
+  const loadStories = async () => {
+    const active = await projectService.getActiveProject()
+    setActiveProject(active)
+
+    if (!active) {
       setStories([])
+      return
     }
+
+    const projectStories = await storyService.getByProject(active.id)
+    setStories(projectStories)
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!activeProject) {
       alert('Najpierw wybierz aktywny projekt!')
       return
     }
+
+    if (!user) {
+      alert('Brak zalogowanego użytkownika!')
+      return
+    }
+
     if (nazwa.trim() === '') {
       alert('Nazwa nie może być pusta!')
       return
     }
+
     if (opis.trim() === '') {
       alert('Opis nie może być pusty!')
       return
     }
-    const newStory = storyService.create(nazwa, opis, priorytet, activeProject.id, user.id)
 
-    notificationService.createForRecipients({
+    const newStory = await storyService.create(nazwa, opis, priorytet, activeProject.id, user.id)
+
+    await notificationService.createForRecipients({
       title: 'Przypisanie do historyjki',
       message: `Jestes wlascicielem historyjki: ${newStory.nazwa}`,
       priority: 'high',
@@ -58,15 +70,15 @@ function Stories() {
     setNazwa('')
     setOpis('')
     setPriorytet('niski')
-    loadStories()
+    await loadStories()
   }
 
-  const handleDelete = (id: string) => {
-    storyService.delete(id)
-    loadStories()
+  const handleDelete = async (id: string) => {
+    await storyService.delete(id)
+    await loadStories()
   }
 
-  const handleEdit = (story: Story) => {
+  const handleEdit = async (story: Story) => {
     const newNazwa = prompt('Podaj nową nazwę:', story.nazwa)
     if (!newNazwa || newNazwa.trim() === '') {
       alert('Nazwa nie może być pusta!')
@@ -82,16 +94,16 @@ function Stories() {
       alert('Nieprawidłowy priorytet!')
       return
     }
-    storyService.update(story.id, newNazwa, newOpis, newPriorytet, story.stan)
-    loadStories()
+    await storyService.update(story.id, newNazwa, newOpis, newPriorytet, story.stan)
+    await loadStories()
   }
 
-  const handleChangeStatus = (id: string, stan: 'todo' | 'doing' | 'done') => {
-    storyService.changeStatus(id, stan)
-    loadStories()
+  const handleChangeStatus = async (id: string, stan: 'todo' | 'doing' | 'done') => {
+    await storyService.changeStatus(id, stan)
+    await loadStories()
   }
 
-  const handleAddTask = (storyId: string) => {
+  const handleAddTask = async (storyId: string) => {
     if (newTaskName.trim() === '') {
       alert('Nazwa zadania nie może być pusta!')
       return
@@ -100,11 +112,12 @@ function Stories() {
       alert('Opis zadania nie może być pusty!')
       return
     }
-    const newTask = taskService.create(newTaskName, newTaskDesc, newTaskPriority, storyId, newTaskTime)
+    const newTask = await taskService.create(newTaskName, newTaskDesc, newTaskPriority, storyId, newTaskTime)
 
-    const story = storyService.getAll().find((item) => item.id === storyId)
+    const allStories = await storyService.getAll()
+    const story = allStories.find((item) => item.id === storyId)
     if (story) {
-      notificationService.createForRecipients({
+      await notificationService.createForRecipients({
         title: 'Nowe zadanie w historyjce',
         message: `Dodano zadanie: ${newTask.nazwa}`,
         priority: 'medium',
@@ -117,7 +130,7 @@ function Stories() {
     setNewTaskPriority('niski')
     setNewTaskTime('')
     setExpandedStoryId(null)
-    loadStories()
+    await loadStories()
   }
 
   const getPriorityColor = (priorytet: string) => {

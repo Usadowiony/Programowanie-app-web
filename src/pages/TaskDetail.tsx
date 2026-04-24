@@ -16,36 +16,47 @@ function TaskDetail() {
   const availableUsers = getAllUsers().filter(u => u.role === 'developer' || u.role === 'devops')
 
   useEffect(() => {
-    if (taskId) {
-      const allTasks = taskService.getAll()
-      const foundTask = allTasks.find(t => t.id === taskId)
-      
-      if (foundTask) {
-        setTask(foundTask)
-        
-        const allStories = storyService.getAll()
-        const foundStory = allStories.find(s => s.id === foundTask.storyId)
-        if (foundStory) {
-          setStory(foundStory)
-        }
+    const loadDetails = async () => {
+      if (!taskId) {
+        return
+      }
 
-        if (foundTask.uzytkownikId) {
-          setSelectedUserId(foundTask.uzytkownikId)
-        }
+      const allTasks = await taskService.getAll()
+      const foundTask = allTasks.find((item) => item.id === taskId)
+
+      if (!foundTask) {
+        setTask(null)
+        setStory(null)
+        setSelectedUserId(null)
+        return
+      }
+
+      setTask(foundTask)
+
+      const allStories = await storyService.getAll()
+      const foundStory = allStories.find((item) => item.id === foundTask.storyId)
+      setStory(foundStory || null)
+
+      if (foundTask.uzytkownikId) {
+        setSelectedUserId(foundTask.uzytkownikId)
+      } else {
+        setSelectedUserId(null)
       }
     }
+
+    void loadDetails()
   }, [taskId])
 
-  const handleAssignUser = () => {
+  const handleAssignUser = async () => {
     if (!selectedUserId || !taskId) {
       alert('Wybierz osobę!')
       return
     }
     
-    taskService.assignUser(taskId, selectedUserId)
+    await taskService.assignUser(taskId, selectedUserId)
 
     if (task) {
-      notificationService.createForRecipients({
+      await notificationService.createForRecipients({
         title: 'Przypisanie do zadania',
         message: `Zostales przypisany do zadania: ${task.nazwa}`,
         priority: 'high',
@@ -53,7 +64,7 @@ function TaskDetail() {
       })
 
       if (story) {
-        notificationService.createForRecipients({
+        await notificationService.createForRecipients({
           title: 'Zmiana statusu zadania',
           message: `Zadanie ${task.nazwa} ma status doing`,
           priority: 'low',
@@ -62,7 +73,7 @@ function TaskDetail() {
       }
     }
     
-    const updatedTask = taskService.getAll().find(t => t.id === taskId)
+    const updatedTask = (await taskService.getAll()).find((item) => item.id === taskId)
     if (updatedTask) {
       setTask(updatedTask)
     }
@@ -70,13 +81,13 @@ function TaskDetail() {
     alert('Osoba przypisana!')
   }
 
-  const handleCompleteTask = () => {
+  const handleCompleteTask = async () => {
     if (!taskId) return
     
-    taskService.completeTask(taskId)
+    await taskService.completeTask(taskId)
 
     if (task && story) {
-      notificationService.createForRecipients({
+      await notificationService.createForRecipients({
         title: 'Zmiana statusu zadania',
         message: `Zadanie ${task.nazwa} ma status done`,
         priority: 'medium',
@@ -84,7 +95,7 @@ function TaskDetail() {
       })
     }
     
-    const updatedTask = taskService.getAll().find(t => t.id === taskId)
+    const updatedTask = (await taskService.getAll()).find((item) => item.id === taskId)
     if (updatedTask) {
       setTask(updatedTask)
     }
@@ -92,7 +103,7 @@ function TaskDetail() {
     alert('Zadanie zamknięte!')
   }
 
-  const handleDeleteTask = () => {
+  const handleDeleteTask = async () => {
     if (!taskId || !task) {
       return
     }
@@ -102,10 +113,10 @@ function TaskDetail() {
       return
     }
 
-    taskService.delete(taskId)
+    await taskService.delete(taskId)
 
     if (story) {
-      notificationService.createForRecipients({
+      await notificationService.createForRecipients({
         title: 'Usuniecie zadania z historyjki',
         message: `Usunieto zadanie: ${task.nazwa}`,
         priority: 'medium',

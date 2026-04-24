@@ -1,4 +1,8 @@
-interface Story {
+import { collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
+import { isFirebaseMode } from '../config/dataStorage'
+import { db } from './firebase'
+
+export interface Story {
   id: string
   nazwa: string
   opis: string
@@ -9,60 +13,120 @@ interface Story {
   wlascicielId: string
 }
 
+const STORIES_KEY = 'stories'
+
+const getLocalStories = (): Story[] => {
+  const data = localStorage.getItem(STORIES_KEY)
+  return data ? JSON.parse(data) as Story[] : []
+}
+
+const saveLocalStories = (stories: Story[]) => {
+  localStorage.setItem(STORIES_KEY, JSON.stringify(stories))
+}
+
+const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
 export const storyService = {
-  getAll(): Story[] {
-    const data = localStorage.getItem('stories')
-    return data ? JSON.parse(data) : []
+  async getAll(): Promise<Story[]> {
+    if (!isFirebaseMode) {
+      return getLocalStories()
+    }
+
+    const snapshot = await getDocs(collection(db, 'stories'))
+    return snapshot.docs.map((item) => {
+      const data = item.data() as Omit<Story, 'id'> & Partial<Pick<Story, 'id'>>
+      return {
+        id: data.id || item.id,
+        nazwa: data.nazwa,
+        opis: data.opis,
+        priorytet: data.priorytet,
+        projektId: data.projektId,
+        dataUtworzenia: data.dataUtworzenia,
+        stan: data.stan,
+        wlascicielId: data.wlascicielId,
+      }
+    })
   },
 
-  getByProject(projektId: string): Story[] {
-    const all = this.getAll()
-    return all.filter(s => s.projektId === projektId)
+  async getByProject(projektId: string): Promise<Story[]> {
+    const allStories = await this.getAll()
+    return allStories.filter((story) => story.projektId === projektId)
   },
 
-  create(nazwa: string, opis: string, priorytet: 'niski' | 'sredni' | 'wysoki', projektId: string, wlascicielId: string): Story {
-    const stories = this.getAll()
+  async create(
+    nazwa: string,
+    opis: string,
+    priorytet: 'niski' | 'sredni' | 'wysoki',
+    projektId: string,
+    wlascicielId: string,
+  ): Promise<Story> {
     const newStory: Story = {
-      id: Date.now().toString(),
+      id: createId(),
       nazwa,
       opis,
       priorytet,
       projektId,
       dataUtworzenia: new Date().toISOString(),
       stan: 'todo',
-      wlascicielId
+      wlascicielId,
     }
-    stories.push(newStory)
-    localStorage.setItem('stories', JSON.stringify(stories))
+
+    if (!isFirebaseMode) {
+      const stories = getLocalStories()
+      stories.push(newStory)
+      saveLocalStories(stories)
+      return newStory
+    }
+
+    await setDoc(doc(db, 'stories', newStory.id), newStory)
     return newStory
   },
 
-  update(id: string, nazwa: string, opis: string, priorytet: 'niski' | 'sredni' | 'wysoki', stan: 'todo' | 'doing' | 'done'): void {
-    const stories = this.getAll()
-    const index = stories.findIndex(s => s.id === id)
-    if (index !== -1) {
-      stories[index].nazwa = nazwa
-      stories[index].opis = opis
-      stories[index].priorytet = priorytet
-      stories[index].stan = stan
-      localStorage.setItem('stories', JSON.stringify(stories))
+  async update(
+    id: string,
+    nazwa: string,
+    opis: string,
+    priorytet: 'niski' | 'sredni' | 'wysoki',
+    stan: 'todo' | 'doing' | 'done',
+  ): Promise<void> {
+    if (!isFirebaseMode) {
+      const stories = getLocalStories()
+      const index = stories.findIndex((item) => item.id === id)
+      if (index !== -1) {
+        stories[index].nazwa = nazwa
+        stories[index].opis = opis
+        stories[index].priorytet = priorytet
+        stories[index].stan = stan
+        saveLocalStories(stories)
+      }
+      return
     }
+
+    await updateDoc(doc(db, 'stories', id), { nazwa, opis, priorytet, stan })
   },
 
-  delete(id: string): void {
-    const stories = this.getAll()
-    const filtered = stories.filter(s => s.id !== id)
-    localStorage.setItem('stories', JSON.stringify(filtered))
+  async delete(id: string): Promise<void> {
+    if (!isFirebaseMode) {
+      const stories = getLocalStories()
+      const filtered = stories.filter((item) => item.id !== id)
+      saveLocalStories(filtered)
+      return
+    }
+
+    await deleteDoc(doc(db, 'stories', id))
   },
 
-  changeStatus(id: string, stan: 'todo' | 'doing' | 'done'): void {
-    const stories = this.getAll()
-    const index = stories.findIndex(s => s.id === id)
-    if (index !== -1) {
-      stories[index].stan = stan
-      localStorage.setItem('stories', JSON.stringify(stories))
+  async changeStatus(id: string, stan: 'todo' | 'doing' | 'done'): Promise<void> {
+    if (!isFirebaseMode) {
+      const stories = getLocalStories()
+      const index = stories.findIndex((item) => item.id === id)
+      if (index !== -1) {
+        stories[index].stan = stan
+        saveLocalStories(stories)
+      }
+      return
     }
-  }
+
+    await updateDoc(doc(db, 'stories', id), { stan })
+  },
 }
-
-export type { Story }

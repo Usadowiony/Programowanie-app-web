@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           && profile.email.toLowerCase() !== superAdminEmail
 
         if (recipientIds.length > 0 || shouldUseEmailFallback) {
-          notificationService.createForRecipients({
+          await notificationService.createForRecipients({
             title: 'Nowe konto w systemie',
             message: `Zalogowal sie nowy uzytkownik: ${profile.firstName} ${profile.lastName} (${profile.email})`,
             priority: 'high',

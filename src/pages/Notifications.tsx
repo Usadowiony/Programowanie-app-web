@@ -13,20 +13,21 @@ function Notifications() {
   const currentUser = getCurrentUser()
   const [notifications, setNotifications] = useState<Notification[]>([])
 
-  const reloadNotifications = () => {
+  const reloadNotifications = async () => {
     if (!currentUser) {
       setNotifications([])
       return
     }
 
-    setNotifications(notificationService.getByRecipient(currentUser.id, currentUser.email))
+    const items = await notificationService.getByRecipient(currentUser.id, currentUser.email)
+    setNotifications(items)
   }
 
   useEffect(() => {
-    reloadNotifications()
+    void reloadNotifications()
 
     const unsubscribe = notificationService.subscribeToChanges(() => {
-      reloadNotifications()
+      void reloadNotifications()
     })
 
     return unsubscribe
@@ -75,7 +76,10 @@ function Notifications() {
                   {!notification.isRead && (
                     <button
                       type="button"
-                      onClick={() => notificationService.markAsRead(notification.id)}
+                      onClick={async () => {
+                        await notificationService.markAsRead(notification.id)
+                        await reloadNotifications()
+                      }}
                       className="px-3 py-1 rounded bg-blue-500 text-white text-sm hover:bg-blue-600 cursor-pointer"
                     >
                       Oznacz jako przeczytane

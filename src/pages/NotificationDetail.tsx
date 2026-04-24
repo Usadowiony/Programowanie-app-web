@@ -9,31 +9,40 @@ function NotificationDetail() {
   const [notification, setNotification] = useState<Notification | null>(null)
 
   useEffect(() => {
-    if (!currentUser) {
-      setNotification(null)
-      return
+    const loadDetails = async () => {
+      if (!currentUser) {
+        setNotification(null)
+        return
+      }
+
+      if (!notificationId) {
+        setNotification(null)
+        return
+      }
+
+      const found = await notificationService.getById(notificationId)
+      const isForCurrentUser = Boolean(found)
+        && (
+          found?.recipientId === currentUser.id
+          || (Boolean(found?.recipientEmail) && found?.recipientEmail?.toLowerCase() === currentUser.email.toLowerCase())
+        )
+
+      if (!found || !isForCurrentUser) {
+        setNotification(null)
+        return
+      }
+
+      if (!found.isRead) {
+        await notificationService.markAsRead(found.id)
+        const updated = await notificationService.getById(found.id)
+        setNotification(updated)
+        return
+      }
+
+      setNotification(found)
     }
 
-    if (!notificationId) {
-      setNotification(null)
-      return
-    }
-
-    const found = notificationService.getById(notificationId)
-
-    if (!found || found.recipientId !== currentUser.id) {
-      setNotification(null)
-      return
-    }
-
-    if (!found.isRead) {
-      notificationService.markAsRead(found.id)
-      const updated = notificationService.getById(found.id)
-      setNotification(updated)
-      return
-    }
-
-    setNotification(found)
+    void loadDetails()
   }, [notificationId, currentUser?.id])
 
   if (!notification) {
@@ -69,9 +78,9 @@ function NotificationDetail() {
           {!notification.isRead && (
             <button
               type="button"
-              onClick={() => {
-                notificationService.markAsRead(notification.id)
-                const updated = notificationService.getById(notification.id)
+              onClick={async () => {
+                await notificationService.markAsRead(notification.id)
+                const updated = await notificationService.getById(notification.id)
                 setNotification(updated)
               }}
               className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"

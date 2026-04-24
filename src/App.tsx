@@ -65,13 +65,14 @@ function AuthenticatedShell() {
     return baseNavItems
   }, [user?.role])
 
-  const refreshUnreadCount = () => {
+  const refreshUnreadCount = async () => {
     if (!user) {
       setUnreadCount(0)
       return
     }
 
-    setUnreadCount(notificationService.getUnreadCount(user.id, user.email))
+    const unread = await notificationService.getUnreadCount(user.id, user.email)
+    setUnreadCount(unread)
   }
 
   useEffect(() => {
@@ -94,14 +95,14 @@ function AuthenticatedShell() {
   }, [isDarkMode])
 
   useEffect(() => {
-    refreshUnreadCount()
+    void refreshUnreadCount()
 
     if (!user) {
       return
     }
 
     const unsubscribeChanges = notificationService.subscribeToChanges(() => {
-      refreshUnreadCount()
+      void refreshUnreadCount()
     })
 
     const unsubscribeCreated = notificationService.subscribeToCreated((notification) => {
@@ -124,17 +125,17 @@ function AuthenticatedShell() {
   }, [user?.id])
 
   useEffect(() => {
-    refreshUnreadCount()
+    void refreshUnreadCount()
   }, [location.pathname, user?.id])
 
   useEffect(() => {
     const handleFocus = () => {
-      refreshUnreadCount()
+      void refreshUnreadCount()
     }
 
     const handleStorage = (event: StorageEvent) => {
       if (event.key === 'notifications') {
-        refreshUnreadCount()
+        void refreshUnreadCount()
       }
     }
 

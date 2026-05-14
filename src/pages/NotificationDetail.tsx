@@ -63,7 +63,7 @@ function NotificationDetail() {
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow p-8">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold text-gray-800">{notification.title}</h1>
-          <span className="text-sm px-3 py-1 rounded bg-gray-200 text-gray-700">
+          <span className="text-sm px-3 py-1 rounded bg-gray-300 text-gray-900">
             {notification.priority}
           </span>
         </div>

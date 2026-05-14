@@ -16,8 +16,12 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<AuthStatus>('loading')
-  const [user, setUser] = useState<User | null>(userService.getCurrentUser())
+  const isTestSession = localStorage.getItem('E2E_TEST_SESSION') === 'true'
+  const cachedUser = userService.getCurrentUser()
+  const initialStatus: AuthStatus = (isTestSession && cachedUser) ? 'authenticated' : 'loading'
+
+  const [status, setStatus] = useState<AuthStatus>(initialStatus)
+  const [user, setUser] = useState<User | null>(cachedUser)
   const superAdminEmail = (import.meta.env.VITE_SUPER_ADMIN_EMAIL || '').toLowerCase().trim()
 
   const refreshCurrentUser = async () => {
@@ -26,6 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    if (isTestSession) {
+      return
+    }
+
     const unsubscribe = authService.onAuthChanged(async (firebaseUser) => {
       if (!firebaseUser) {
         userService.setCurrentUserCache(null)

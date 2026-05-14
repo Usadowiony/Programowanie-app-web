@@ -1,6 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
-import { isFirebaseMode } from '../config/dataStorage'
-import { db } from './firebase'
+import { getStorageDriver } from '../drivers/driverFactory'
 
 export interface Story {
   id: string
@@ -13,39 +11,14 @@ export interface Story {
   wlascicielId: string
 }
 
-const STORIES_KEY = 'stories'
-
-const getLocalStories = (): Story[] => {
-  const data = localStorage.getItem(STORIES_KEY)
-  return data ? JSON.parse(data) as Story[] : []
-}
-
-const saveLocalStories = (stories: Story[]) => {
-  localStorage.setItem(STORIES_KEY, JSON.stringify(stories))
-}
+const COLLECTION = 'stories'
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 export const storyService = {
   async getAll(): Promise<Story[]> {
-    if (!isFirebaseMode) {
-      return getLocalStories()
-    }
-
-    const snapshot = await getDocs(collection(db, 'stories'))
-    return snapshot.docs.map((item) => {
-      const data = item.data() as Omit<Story, 'id'> & Partial<Pick<Story, 'id'>>
-      return {
-        id: data.id || item.id,
-        nazwa: data.nazwa,
-        opis: data.opis,
-        priorytet: data.priorytet,
-        projektId: data.projektId,
-        dataUtworzenia: data.dataUtworzenia,
-        stan: data.stan,
-        wlascicielId: data.wlascicielId,
-      }
-    })
+    const driver = getStorageDriver()
+    return driver.getAll<Story>(COLLECTION)
   },
 
   async getByProject(projektId: string): Promise<Story[]> {
@@ -60,6 +33,7 @@ export const storyService = {
     projektId: string,
     wlascicielId: string,
   ): Promise<Story> {
+    const driver = getStorageDriver()
     const newStory: Story = {
       id: createId(),
       nazwa,
@@ -71,14 +45,7 @@ export const storyService = {
       wlascicielId,
     }
 
-    if (!isFirebaseMode) {
-      const stories = getLocalStories()
-      stories.push(newStory)
-      saveLocalStories(stories)
-      return newStory
-    }
-
-    await setDoc(doc(db, 'stories', newStory.id), newStory)
+    await driver.create(COLLECTION, newStory.id, newStory)
     return newStory
   },
 
@@ -89,44 +56,17 @@ export const storyService = {
     priorytet: 'niski' | 'sredni' | 'wysoki',
     stan: 'todo' | 'doing' | 'done',
   ): Promise<void> {
-    if (!isFirebaseMode) {
-      const stories = getLocalStories()
-      const index = stories.findIndex((item) => item.id === id)
-      if (index !== -1) {
-        stories[index].nazwa = nazwa
-        stories[index].opis = opis
-        stories[index].priorytet = priorytet
-        stories[index].stan = stan
-        saveLocalStories(stories)
-      }
-      return
-    }
-
-    await updateDoc(doc(db, 'stories', id), { nazwa, opis, priorytet, stan })
+    const driver = getStorageDriver()
+    await driver.update(COLLECTION, id, { nazwa, opis, priorytet, stan })
   },
 
   async delete(id: string): Promise<void> {
-    if (!isFirebaseMode) {
-      const stories = getLocalStories()
-      const filtered = stories.filter((item) => item.id !== id)
-      saveLocalStories(filtered)
-      return
-    }
-
-    await deleteDoc(doc(db, 'stories', id))
+    const driver = getStorageDriver()
+    await driver.remove(COLLECTION, id)
   },
 
   async changeStatus(id: string, stan: 'todo' | 'doing' | 'done'): Promise<void> {
-    if (!isFirebaseMode) {
-      const stories = getLocalStories()
-      const index = stories.findIndex((item) => item.id === id)
-      if (index !== -1) {
-        stories[index].stan = stan
-        saveLocalStories(stories)
-      }
-      return
-    }
-
-    await updateDoc(doc(db, 'stories', id), { stan })
+    const driver = getStorageDriver()
+    await driver.update(COLLECTION, id, { stan })
   },
 }

@@ -1,6 +1,4 @@
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
-import { isFirebaseMode } from '../config/dataStorage'
-import { db } from './firebase'
+import { getStorageDriver } from '../drivers/driverFactory'
 
 export type NotificationPriority = 'low' | 'medium' | 'high'
 export type ISOString = string
@@ -28,7 +26,7 @@ type NotificationInput = {
 type CreatedListener = (notification: Notification) => void
 type ChangeListener = () => void
 
-const STORAGE_KEY = 'notifications'
+const COLLECTION = 'notifications'
 
 const createdListeners = new Set<CreatedListener>()
 const changeListeners = new Set<ChangeListener>()
@@ -39,15 +37,6 @@ const emitCreated = (notification: Notification) => {
 
 const emitChanged = () => {
   changeListeners.forEach((listener) => listener())
-}
-
-const getSavedNotifications = (): Notification[] => {
-  const data = localStorage.getItem(STORAGE_KEY)
-  return data ? JSON.parse(data) as Notification[] : []
-}
-
-const saveNotifications = (notifications: Notification[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications))
 }
 
 const uniqueRecipientIds = (ids: UserID[]): UserID[] => [...new Set(ids)]
@@ -62,28 +51,12 @@ const uniqueRecipientEmails = (emails: string[]): string[] => {
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
+
 export const notificationService = {
   async getAll(): Promise<Notification[]> {
-    if (!isFirebaseMode) {
-      return getSavedNotifications()
-    }
-
-    const snapshot = await getDocs(collection(db, 'notifications'))
-    return snapshot.docs
-      .map((item) => {
-        const data = item.data() as Omit<Notification, 'id'> & Partial<Pick<Notification, 'id'>>
-        return {
-          id: data.id || item.id,
-          title: data.title,
-          message: data.message,
-          date: data.date,
-          priority: data.priority,
-          isRead: data.isRead,
-          recipientId: data.recipientId || '',
-          recipientEmail: data.recipientEmail,
-        }
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const driver = getStorageDriver()
+    const notifications = await driver.getAll<Notification>(COLLECTION)
+    return notifications.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   },
 
   async getByRecipient(recipientId: UserID, recipientEmail?: string): Promise<Notification[]> {
@@ -104,27 +77,8 @@ export const notificationService = {
   },
 
   async getById(id: string): Promise<Notification | null> {
-    if (!isFirebaseMode) {
-      const notification = getSavedNotifications().find((item) => item.id === id)
-      return notification ?? null
-    }
-
-    const snapshot = await getDoc(doc(db, 'notifications', id))
-    if (!snapshot.exists()) {
-      return null
-    }
-
-    const data = snapshot.data() as Omit<Notification, 'id'> & Partial<Pick<Notification, 'id'>>
-    return {
-      id: data.id || snapshot.id,
-      title: data.title,
-      message: data.message,
-      date: data.date,
-      priority: data.priority,
-      isRead: data.isRead,
-      recipientId: data.recipientId || '',
-      recipientEmail: data.recipientEmail,
-    }
+    const driver = getStorageDriver()
+    return driver.getById<Notification>(COLLECTION, id)
   },
 
   async getUnreadCount(recipientId: UserID, recipientEmail?: string): Promise<number> {
@@ -133,6 +87,7 @@ export const notificationService = {
   },
 
   async createForRecipients(input: NotificationInput): Promise<Notification[]> {
+    const driver = getStorageDriver()
     const recipientIds = uniqueRecipientIds(input.recipientIds || [])
     const recipientEmails = uniqueRecipientEmails(input.recipientEmails || [])
 
@@ -163,14 +118,9 @@ export const notificationService = {
       return []
     }
 
-    if (!isFirebaseMode) {
-      const current = getSavedNotifications()
-      saveNotifications([...current, ...created])
-    } else {
-      await Promise.all(
-        created.map((notification) => setDoc(doc(db, 'notifications', notification.id), notification)),
-      )
-    }
+    await Promise.all(
+      created.map((notification) => driver.create(COLLECTION, notification.id, notification)),
+    )
 
     created.forEach((notification) => emitCreated(notification))
     emitChanged()
@@ -178,20 +128,14 @@ export const notificationService = {
   },
 
   async markAsRead(id: string): Promise<void> {
-    if (!isFirebaseMode) {
-      const notifications = getSavedNotifications()
-      const index = notifications.findIndex((item) => item.id === id)
-      if (index === -1 || notifications[index].isRead) {
-        return
-      }
+    const driver = getStorageDriver()
+    const notification = await driver.getById<Notification>(COLLECTION, id)
 
-      notifications[index].isRead = true
-      saveNotifications(notifications)
-      emitChanged()
+    if (!notification || notification.isRead) {
       return
     }
 
-    await updateDoc(doc(db, 'notifications', id), { isRead: true })
+    await driver.update(COLLECTION, id, { isRead: true })
     emitChanged()
   },
 

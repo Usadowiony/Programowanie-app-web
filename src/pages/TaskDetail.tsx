@@ -1,132 +1,21 @@
-import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { taskService, Task } from '../services/taskService'
-import { storyService, Story } from '../services/storyService'
-import { getAllUsers, getUserById } from '../services/userService'
-import { notificationService } from '../services/notificationService'
+import { useParams } from 'react-router-dom'
+import { useTaskDetail } from '../hooks/useTaskDetail'
 
 function TaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
-  const navigate = useNavigate()
 
-  const [task, setTask] = useState<Task | null>(null)
-  const [story, setStory] = useState<Story | null>(null)
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-
-  const availableUsers = getAllUsers().filter(u => u.role === 'developer' || u.role === 'devops')
-
-  useEffect(() => {
-    const loadDetails = async () => {
-      if (!taskId) {
-        return
-      }
-
-      const allTasks = await taskService.getAll()
-      const foundTask = allTasks.find((item) => item.id === taskId)
-
-      if (!foundTask) {
-        setTask(null)
-        setStory(null)
-        setSelectedUserId(null)
-        return
-      }
-
-      setTask(foundTask)
-
-      const allStories = await storyService.getAll()
-      const foundStory = allStories.find((item) => item.id === foundTask.storyId)
-      setStory(foundStory || null)
-
-      if (foundTask.uzytkownikId) {
-        setSelectedUserId(foundTask.uzytkownikId)
-      } else {
-        setSelectedUserId(null)
-      }
-    }
-
-    void loadDetails()
-  }, [taskId])
-
-  const handleAssignUser = async () => {
-    if (!selectedUserId || !taskId) {
-      alert('Wybierz osobę!')
-      return
-    }
-    
-    await taskService.assignUser(taskId, selectedUserId)
-
-    if (task) {
-      await notificationService.createForRecipients({
-        title: 'Przypisanie do zadania',
-        message: `Zostales przypisany do zadania: ${task.nazwa}`,
-        priority: 'high',
-        recipientIds: [selectedUserId],
-      })
-
-      if (story) {
-        await notificationService.createForRecipients({
-          title: 'Zmiana statusu zadania',
-          message: `Zadanie ${task.nazwa} ma status doing`,
-          priority: 'low',
-          recipientIds: [story.wlascicielId],
-        })
-      }
-    }
-    
-    const updatedTask = (await taskService.getAll()).find((item) => item.id === taskId)
-    if (updatedTask) {
-      setTask(updatedTask)
-    }
-    
-    alert('Osoba przypisana!')
-  }
-
-  const handleCompleteTask = async () => {
-    if (!taskId) return
-    
-    await taskService.completeTask(taskId)
-
-    if (task && story) {
-      await notificationService.createForRecipients({
-        title: 'Zmiana statusu zadania',
-        message: `Zadanie ${task.nazwa} ma status done`,
-        priority: 'medium',
-        recipientIds: [story.wlascicielId],
-      })
-    }
-    
-    const updatedTask = (await taskService.getAll()).find((item) => item.id === taskId)
-    if (updatedTask) {
-      setTask(updatedTask)
-    }
-    
-    alert('Zadanie zamknięte!')
-  }
-
-  const handleDeleteTask = async () => {
-    if (!taskId || !task) {
-      return
-    }
-
-    const shouldDelete = window.confirm('Czy na pewno usunac to zadanie?')
-    if (!shouldDelete) {
-      return
-    }
-
-    await taskService.delete(taskId)
-
-    if (story) {
-      await notificationService.createForRecipients({
-        title: 'Usuniecie zadania z historyjki',
-        message: `Usunieto zadanie: ${task.nazwa}`,
-        priority: 'medium',
-        recipientIds: [story.wlascicielId],
-      })
-    }
-
-    alert('Zadanie usuniete!')
-    navigate('/tasks')
-  }
+  const {
+    task,
+    story,
+    assignedUser,
+    selectedUserId,
+    setSelectedUserId,
+    availableUsers,
+    assignUser,
+    completeTask,
+    deleteTask,
+    navigate,
+  } = useTaskDetail(taskId)
 
   if (!task) {
     return (
@@ -136,13 +25,11 @@ function TaskDetail() {
     )
   }
 
-  const assignedUser = task.uzytkownikId ? getUserById(task.uzytkownikId) : null
-
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+      <div className="w-full max-w-2xl mx-auto bg-white p-5 md:p-8 rounded-lg shadow">
         
-        <h1 className="text-4xl font-bold mb-2">{task.nazwa}</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 break-words">{task.nazwa}</h1>
         <button
           onClick={() => navigate(-1)}
           className="mb-6 text-blue-500 hover:underline cursor-pointer"
@@ -223,7 +110,7 @@ function TaskDetail() {
           {task.stan === 'todo' && (
             <div className="mb-6">
               <label className="block font-semibold mb-2">Przypisz osobę:</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={selectedUserId || ''}
                   onChange={(e) => setSelectedUserId(e.target.value || null)}
@@ -237,7 +124,7 @@ function TaskDetail() {
                   ))}
                 </select>
                 <button
-                  onClick={handleAssignUser}
+                  onClick={assignUser}
                   className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 cursor-pointer font-semibold"
                 >
                   Przypisz
@@ -248,7 +135,7 @@ function TaskDetail() {
 
           {task.stan === 'doing' && (
             <button
-              onClick={handleCompleteTask}
+              onClick={completeTask}
               className="w-full px-6 py-3 bg-green-500 text-white rounded hover:bg-green-600 cursor-pointer font-semibold text-lg"
             >
               Zamknij zadanie
@@ -261,7 +148,7 @@ function TaskDetail() {
 
           <button
             type="button"
-            onClick={handleDeleteTask}
+            onClick={deleteTask}
             className="w-full mt-4 px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer font-semibold"
           >
             Usun zadanie

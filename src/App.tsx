@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BrowserRouter as Router, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Home from './pages/Home'
-import ManageMe from './pages/ManageMe'
+import Projects from './pages/Projects'
 import User from './pages/User'
 import Stories from './pages/Stories'
 import TaskDetail from './pages/TaskDetail'
@@ -16,20 +16,19 @@ import { Notification, notificationService } from './services/notificationServic
 import UnreadNotificationsCounter from './components/UnreadNotificationsCounter'
 import NotificationDialog from './components/NotificationDialog'
 import { useAuth } from './auth/AuthContext'
+import logoUrl from './assets/images/logo.webp'
+import logoDarkUrl from './assets/images/logo-dark.webp'
 
 const baseNavItems = [
-  { to: '/', label: 'Home' },
-  { to: '/manageme', label: 'Manage Me' },
-  { to: '/user', label: 'Uzytkownik' },
-  { to: '/stories', label: 'Stories' },
+  { to: '/projects', label: 'Projekty' },
+  { to: '/stories', label: 'Historyjki' },
   { to: '/tasks', label: 'Zadania' },
-  { to: '/notifications', label: 'Powiadomienia' },
 ]
 
 function AppLoading() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <p className="text-gray-700 text-lg">Ladowanie aplikacji...</p>
+      <p className="text-gray-700 text-lg">Ładowanie aplikacji...</p>
     </div>
   )
 }
@@ -52,16 +51,17 @@ function BlockedGate() {
 
 function AuthenticatedShell() {
   const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [dialogNotification, setDialogNotification] = useState<Notification | null>(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
 
   const navItems = useMemo(() => {
     if (user?.role === 'admin') {
-      return [...baseNavItems, { to: '/users', label: 'Uzytkownicy' }]
+      return [...baseNavItems, { to: '/users', label: 'Użytkownicy' }]
     }
-
     return baseNavItems
   }, [user?.role])
 
@@ -70,7 +70,6 @@ function AuthenticatedShell() {
       setUnreadCount(0)
       return
     }
-
     const unread = await notificationService.getUnreadCount(user.id, user.email)
     setUnreadCount(unread)
   }
@@ -89,7 +88,6 @@ function AuthenticatedShell() {
       localStorage.setItem('theme', 'dark')
       return
     }
-
     root.classList.remove('theme-dark')
     localStorage.setItem('theme', 'light')
   }, [isDarkMode])
@@ -97,9 +95,7 @@ function AuthenticatedShell() {
   useEffect(() => {
     void refreshUnreadCount()
 
-    if (!user) {
-      return
-    }
+    if (!user) return
 
     const unsubscribeChanges = notificationService.subscribeToChanges(() => {
       void refreshUnreadCount()
@@ -109,9 +105,7 @@ function AuthenticatedShell() {
       const emailMatch = Boolean(notification.recipientEmail)
         && notification.recipientEmail?.toLowerCase() === user.email.toLowerCase()
 
-      if (notification.recipientId !== user.id && !emailMatch) {
-        return
-      }
+      if (notification.recipientId !== user.id && !emailMatch) return
 
       if (notification.priority === 'medium' || notification.priority === 'high') {
         setDialogNotification(notification)
@@ -129,90 +123,112 @@ function AuthenticatedShell() {
   }, [location.pathname, user?.id])
 
   useEffect(() => {
-    const handleFocus = () => {
-      void refreshUnreadCount()
-    }
-
+    const handleFocus = () => { void refreshUnreadCount() }
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === 'notifications') {
-        void refreshUnreadCount()
-      }
+      if (event.key === 'notifications') { void refreshUnreadCount() }
     }
-
     window.addEventListener('focus', handleFocus)
     window.addEventListener('storage', handleStorage)
-
     return () => {
       window.removeEventListener('focus', handleFocus)
       window.removeEventListener('storage', handleStorage)
     }
   }, [user?.id])
 
-  if (!user) {
-    return <AppLoading />
-  }
+  if (!user) return <AppLoading />
 
   return (
     <div className="app-shell min-h-screen">
       <nav className="app-nav">
-        <div className="app-nav-links">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `app-nav-link ${isActive ? 'is-active' : ''}`}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </div>
-
-        <div className="app-nav-right">
-          <div className="app-user-box">
-            <span className="app-user-label">Zalogowany:</span>
-            <span className="app-user-name">{user.firstName} {user.lastName}</span>
-          </div>
-
-          <UnreadNotificationsCounter unreadCount={unreadCount} />
+        <div className="app-nav-header">
+          <NavLink to="/" className="app-nav-logo" aria-label="Strona główna" onClick={() => setIsMenuOpen(false)}>
+            <img src={logoUrl} alt="Logo" className="app-nav-logo-img app-logo-light" />
+            <img src={logoDarkUrl} alt="Logo" className="app-nav-logo-img app-logo-dark" />
+          </NavLink>
 
           <button
-            type="button"
-            onClick={() => signOut()}
-            className="px-3 py-1.5 rounded border border-slate-400 text-sm hover:bg-slate-200"
+            className="app-nav-hamburger"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Menu"
+            aria-expanded={isMenuOpen}
           >
-            Wyloguj
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsDarkMode((prev) => !prev)}
-            className="theme-toggle"
-            aria-label={isDarkMode ? 'Przelacz na jasny motyw' : 'Przelacz na ciemny motyw'}
-            title={isDarkMode ? 'Jasny motyw' : 'Ciemny motyw'}
-          >
-            {isDarkMode ? (
-              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                <path
-                  fill="currentColor"
-                  d="M21.75 15.5A9.75 9.75 0 1 1 8.5 2.25a.75.75 0 0 1 .89.96 8.25 8.25 0 0 0 11.4 11.4.75.75 0 0 1 .96.89Z"
-                />
+            {isMenuOpen ? (
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                <path
-                  fill="currentColor"
-                  d="M12 3a.75.75 0 0 1 .75.75V5a.75.75 0 0 1-1.5 0V3.75A.75.75 0 0 1 12 3Zm0 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm8.25-5a.75.75 0 0 1 .75.75.75.75 0 0 1-.75.75H19a.75.75 0 0 1 0-1.5h1.25ZM5 12a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1 0-1.5H5Zm12.303 5.803a.75.75 0 0 1 1.06 1.06l-.884.884a.75.75 0 1 1-1.06-1.06l.884-.884Zm-9.782-.53a.75.75 0 0 1 0 1.06l-.884.884a.75.75 0 0 1-1.06-1.06l.884-.884a.75.75 0 0 1 1.06 0Zm11.018-11.02a.75.75 0 0 1 0 1.061l-.884.884a.75.75 0 1 1-1.06-1.06l.884-.885a.75.75 0 0 1 1.06 0ZM7.52 6.98a.75.75 0 0 1-1.06 0l-.884-.885a.75.75 0 0 1 1.06-1.06l.884.884a.75.75 0 0 1 0 1.06ZM12 19a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-1.25A.75.75 0 0 1 12 19Z"
-                />
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             )}
           </button>
+        </div>
+
+        <div className={`app-nav-menu ${isMenuOpen ? 'is-open' : ''}`}>
+          <div className="app-nav-links app-nav-links-center">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setIsMenuOpen(false)}
+                className={({ isActive }) => `app-nav-link ${isActive ? 'is-active' : ''}`}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+
+          <div className="app-nav-right">
+            <button
+              type="button"
+              onClick={() => navigate('/user')}
+              className="app-user-btn"
+              title="Twoje konto"
+            >
+              <span className="app-user-name">{user.firstName} {user.lastName}</span>
+              <span className="app-user-role-badge">{user.role}</span>
+            </button>
+
+            <div className="app-nav-actions-row">
+              <UnreadNotificationsCounter unreadCount={unreadCount} />
+
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="px-3 py-1.5 rounded border border-slate-400 text-sm hover:bg-slate-200 theme-dark:border-slate-600 theme-dark:hover:bg-slate-800 transition-colors"
+              >
+                Wyloguj
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDarkMode((prev) => !prev)
+                  setIsMenuOpen(false)
+                }}
+                className="theme-toggle"
+                aria-label={isDarkMode ? 'Przelacz na jasny motyw' : 'Przelacz na ciemny motyw'}
+                title={isDarkMode ? 'Jasny motyw' : 'Ciemny motyw'}
+              >
+                {isDarkMode ? (
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                    <path fill="currentColor" d="M21.75 15.5A9.75 9.75 0 1 1 8.5 2.25a.75.75 0 0 1 .89.96 8.25 8.25 0 0 0 11.4 11.4.75.75 0 0 1 .96.89Z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                    <path fill="currentColor" d="M12 3a.75.75 0 0 1 .75.75V5a.75.75 0 0 1-1.5 0V3.75A.75.75 0 0 1 12 3Zm0 14a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm8.25-5a.75.75 0 0 1 .75.75.75.75 0 0 1-.75.75H19a.75.75 0 0 1 0-1.5h1.25ZM5 12a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1 0-1.5H5Zm12.303 5.803a.75.75 0 0 1 1.06 1.06l-.884.884a.75.75 0 1 1-1.06-1.06l.884-.884Zm-9.782-.53a.75.75 0 0 1 0 1.06l-.884.884a.75.75 0 0 1-1.06-1.06l.884-.884a.75.75 0 0 1 1.06 0Zm11.018-11.02a.75.75 0 0 1 0 1.061l-.884.884a.75.75 0 1 1-1.06-1.06l.884-.885a.75.75 0 0 1 1.06 0ZM7.52 6.98a.75.75 0 0 1-1.06 0l-.884-.885a.75.75 0 0 1 1.06-1.06l.884.884a.75.75 0 0 1 0 1.06ZM12 19a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-1.25A.75.75 0 0 1 12 19Z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
 
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/manageme" element={<ManageMe />} />
+          <Route path="/projects" element={<Projects />} />
           <Route path="/user" element={<User />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/task/:taskId" element={<TaskDetail />} />
@@ -238,9 +254,7 @@ function AuthenticatedShell() {
 function AppRouter() {
   const { status, user } = useAuth()
 
-  if (status === 'loading') {
-    return <AppLoading />
-  }
+  if (status === 'loading') return <AppLoading />
 
   if (status === 'unauthenticated') {
     return (
@@ -250,17 +264,9 @@ function AppRouter() {
     )
   }
 
-  if (!user) {
-    return <AppLoading />
-  }
-
-  if (user.blocked) {
-    return <BlockedGate />
-  }
-
-  if (user.role === 'guest') {
-    return <GuestGate />
-  }
+  if (!user) return <AppLoading />
+  if (user.blocked) return <BlockedGate />
+  if (user.role === 'guest') return <GuestGate />
 
   return <AuthenticatedShell />
 }
